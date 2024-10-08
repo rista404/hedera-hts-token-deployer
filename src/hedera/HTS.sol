@@ -16,6 +16,9 @@ import {IHederaTokenService} from "./IHederaTokenService.sol";
 library HTS {
     address private constant PRECOMPILE = address(0x167);
 
+    // 4th bit: supplyKey
+    uint256 internal constant SUPPLY_KEY_BIT = 1 << 4;
+
     // 90 days in seconds
     int32 private constant DEFAULT_AUTO_RENEW = 7776000;
 
