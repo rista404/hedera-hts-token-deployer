@@ -25,6 +25,9 @@ library HTS {
     /// @dev See HederaResponseCodes for a list of possible response codes.
     error HTSCallFailed(int32 responseCode);
 
+    /// @dev Thrown when the amount to mint/burn is invalid (negative or out of bounds).
+    error InvalidAmount();
+
     /// Creates a Fungible Token with the specified properties
     /// @param token the basic properties of the token being created
     /// @param initialTotalSupply Specifies the initial supply of tokens to be put in circulation. The
@@ -49,6 +52,54 @@ library HTS {
         (responseCode, tokenAddress) =
             success ? abi.decode(result, (int32, address)) : (HederaResponseCodes.UNKNOWN, address(0));
 
+        if (responseCode != HederaResponseCodes.SUCCESS) {
+            revert HTSCallFailed(responseCode);
+        }
+    }
+
+    /// Mints an amount of the token to the defined treasury account
+    /// @param token The token for which to mint tokens. If token does not exist, transaction results in
+    ///              INVALID_TOKEN_ID
+    /// @param amount Applicable to tokens of type FUNGIBLE_COMMON. The amount to mint to the Treasury Account.
+    ///               Amount must be a positive non-zero number represented in the lowest denomination of the
+    ///               token. The new supply must be lower than 2^63.
+    /// @return newTotalSupply The new supply of tokens. For NFTs it is the total count of NFTs
+    function mintToken(address token, uint256 amount) internal returns (int64 newTotalSupply) {
+        if (amount <= 0 || amount > uint256(int256(type(int64).max))) {
+            revert InvalidAmount();
+        }
+
+        bytes[] memory metadata;
+        int64 amountInt64 = int64(int256(amount));
+        (bool success, bytes memory result) = PRECOMPILE.call(
+            abi.encodeWithSelector(IHederaTokenService.mintToken.selector, token, amountInt64, metadata)
+        );
+        int32 responseCode;
+        (responseCode, newTotalSupply,) = success
+            ? abi.decode(result, (int32, int64, int64[]))
+            : (HederaResponseCodes.UNKNOWN, int64(0), new int64[](0));
+        if (responseCode != HederaResponseCodes.SUCCESS) {
+            revert HTSCallFailed(responseCode);
+        }
+    }
+
+    /// Transfers tokens where the calling account/contract is implicitly the first entry in the token transfer list,
+    /// where the amount is the value needed to zero balance the transfers. Regular signing rules apply for sending
+    /// (positive amount) or receiving (negative amount)
+    /// @param token The token to transfer to/from
+    /// @param sender The sender for the transaction
+    /// @param receiver The receiver of the transaction
+    /// @param amount Non-negative value to send. a negative value will result in a failure.
+    function transferToken(address token, address sender, address receiver, uint256 amount) internal {
+        if (amount <= 0 || amount > uint256(int256(type(int64).max))) {
+            revert InvalidAmount();
+        }
+        int64 amountInt64 = int64(int256(amount));
+        (bool success, bytes memory result) = PRECOMPILE.call(
+            abi.encodeWithSelector(IHederaTokenService.transferToken.selector, token, sender, receiver, amountInt64)
+        );
+        int32 responseCode;
+        responseCode = success ? abi.decode(result, (int32)) : HederaResponseCodes.UNKNOWN;
         if (responseCode != HederaResponseCodes.SUCCESS) {
             revert HTSCallFailed(responseCode);
         }

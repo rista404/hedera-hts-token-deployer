@@ -10,7 +10,7 @@ contract Caller {
         deployer = IDeployer(_deployer);
     }
 
-    function deploy(string memory name, string memory symbol, uint8 decimals) public payable {
-        deployer.deploy{value: msg.value}(name, symbol, decimals);
+    function deploy(string memory name, string memory symbol, uint8 decimals, address treasury) public payable {
+        deployer.deploy{value: msg.value}(name, symbol, decimals, treasury);
     }
 }

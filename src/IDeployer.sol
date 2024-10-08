@@ -7,7 +7,7 @@ interface IDeployer {
 
     event TokenDeployed(address indexed tokenAddress);
 
-    function deploy(string memory name, string memory symbol, uint8 decimals)
+    function deploy(string memory name, string memory symbol, uint8 decimals, address treasury)
         external
         payable
         returns (address tokenAddress);
