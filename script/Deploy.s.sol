@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Deployer} from "../src/Deployer.sol";
+import {Manager} from "../src/Manager.sol";
 import {Caller} from "../src/Caller.sol";
 import {Minter} from "../src/Minter.sol";
 
@@ -10,6 +11,7 @@ contract DeployScript is Script {
     Deployer public deployer;
     Caller public caller;
     Minter public minter;
+    Manager public manager;
 
     function setUp() public {}
 
@@ -24,8 +26,12 @@ contract DeployScript is Script {
         deployer = new Deployer();
         console.log("Deployer deployed at:", address(deployer));
 
+        // Deploy the Manager contract
+        manager = new Manager(address(deployer), address(minter));
+        console.log("Manager deployed at:", address(manager));
+
         // Deploy the Caller contract with the address of the Deployer contract
-        caller = new Caller(address(deployer));
+        caller = new Caller(address(manager));
         console.log("Caller deployed at:", address(caller));
 
         vm.stopBroadcast();
