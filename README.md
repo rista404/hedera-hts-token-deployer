@@ -1,5 +1,5 @@
 ```sh
-#
+# deploy contracts
 forge script script/Deploy.s.sol:DeployScript --rpc-url https://testnet.hashio.io/api --broadcast --private-key 0x...
 
 # create a new token

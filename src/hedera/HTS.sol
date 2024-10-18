@@ -104,4 +104,50 @@ library HTS {
             revert HTSCallFailed(responseCode);
         }
     }
+
+    /// Transfers `amount` tokens from `from` to `to` using the
+    ///  allowance mechanism. `amount` is then deducted from the caller's allowance.
+    /// Only applicable to fungible tokens
+    /// @param token The address of the fungible Hedera token to transfer
+    /// @param from The account address of the owner of the token, on the behalf of which to transfer `amount` tokens
+    /// @param to The account address of the receiver of the `amount` tokens
+    /// @param amount The amount of tokens to transfer from `from` to `to`
+    function transferFrom(address token, address from, address to, uint256 amount) external {
+        if (amount <= 0 || amount > uint256(int256(type(int64).max))) {
+            revert InvalidAmount();
+        }
+        int64 amountInt64 = int64(int256(amount));
+        (bool success, bytes memory result) = PRECOMPILE.call(
+            abi.encodeWithSelector(IHederaTokenService.transferFrom.selector, token, from, to, amountInt64)
+        );
+        int32 responseCode;
+        responseCode = success ? abi.decode(result, (int32)) : HederaResponseCodes.UNKNOWN;
+        if (responseCode != HederaResponseCodes.SUCCESS) {
+            revert HTSCallFailed(responseCode);
+        }
+    }
+
+    /// Burns an amount of the token from the defined treasury account
+    /// @param token The token for which to burn tokens. If token does not exist, transaction results in
+    ///              INVALID_TOKEN_ID
+    /// @param amount  Applicable to tokens of type FUNGIBLE_COMMON. The amount to burn from the Treasury Account.
+    ///                Amount must be a positive non-zero number, not bigger than the token balance of the treasury
+    ///                account (0; balance], represented in the lowest denomination.
+    /// @return newTotalSupply The new supply of tokens. For NFTs it is the total count of NFTs
+    function burnToken(address token, uint256 amount) internal returns (int64 newTotalSupply) {
+        if (amount <= 0 || amount > uint256(int256(type(int64).max))) {
+            revert InvalidAmount();
+        }
+        int64 amountInt64 = int64(int256(amount));
+        int64[] memory serialNumbers;
+        (bool success, bytes memory result) = PRECOMPILE.call(
+            abi.encodeWithSelector(IHederaTokenService.burnToken.selector, token, amountInt64, serialNumbers)
+        );
+        int32 responseCode;
+        (responseCode, newTotalSupply) =
+            success ? abi.decode(result, (int32, int64)) : (HederaResponseCodes.UNKNOWN, int64(0));
+        if (responseCode != HederaResponseCodes.SUCCESS) {
+            revert HTSCallFailed(responseCode);
+        }
+    }
 }

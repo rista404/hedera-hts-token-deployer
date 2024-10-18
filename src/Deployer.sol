@@ -6,7 +6,7 @@ import {Treasury} from "./Treasury.sol";
 import {HTS, IHederaTokenService} from "./hedera/HTS.sol";
 
 contract Deployer is IDeployer {
-    function deploy(string memory name, string memory symbol, uint8 decimals)
+    function deploy(bytes32, string calldata name, string calldata symbol, uint8 decimals)
         public
         payable
         returns (address tokenAddress)
@@ -22,7 +22,6 @@ contract Deployer is IDeployer {
         token.treasury = manager;
 
         IHederaTokenService.TokenKey[] memory tokenKeys = new IHederaTokenService.TokenKey[](1);
-
         // Define the supply keys - minters
         IHederaTokenService.KeyValue memory supplyKeyITS = IHederaTokenService.KeyValue({
             inheritAccountKey: false,
@@ -32,11 +31,10 @@ contract Deployer is IDeployer {
             delegatableContractId: address(0)
         });
         tokenKeys[0] = IHederaTokenService.TokenKey({keyType: HTS.SUPPLY_KEY_BIT, key: supplyKeyITS});
+        token.tokenKeys = tokenKeys;
 
         IHederaTokenService.Expiry memory expiry = IHederaTokenService.Expiry(0, manager, 8000000);
         token.expiry = expiry;
-
-        token.tokenKeys = tokenKeys;
 
         address createdTokenAddress = HTS.createFungibleToken(token, 100, int32(uint32(decimals)));
 
